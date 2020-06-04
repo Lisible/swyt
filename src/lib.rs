@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use log::{info, trace};
+use log::trace;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
@@ -188,7 +188,7 @@ fn parse_period_time(period_time: String) -> Result<(NaiveTime, NaiveTime), Swyt
                 Some(time) => parse_time(time)?,
                 None => return Err(SwytError::RuleParseError),
             };
-            let end_time = match split_time.get(0) {
+            let end_time = match split_time.get(1) {
                 Some(time) => parse_time(time)?,
                 None => return Err(SwytError::RuleParseError),
             };
