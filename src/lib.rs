@@ -164,16 +164,9 @@ fn parse_period_time(period_time: &str) -> Result<(NaiveTime, NaiveTime), SwytEr
             NaiveTime::from_hms(23, 59, 59),
         )),
         _ => {
-            let split_time: Vec<&str> = period_time.split("~").collect();
-            let begin_time = match split_time.get(0) {
-                Some(time) => parse_time(time)?,
-                None => return Err(SwytError::RuleParseError),
-            };
-            let end_time = match split_time.get(1) {
-                Some(time) => parse_time(time)?,
-                None => return Err(SwytError::RuleParseError),
-            };
-
+            let mut split_time = period_time.split("~");
+            let begin_time = parse_time(split_time.next().ok_or(SwytError::RuleParseError)?)?;
+            let end_time = parse_time(split_time.next().ok_or(SwytError::RuleParseError)?)?;
             Ok((begin_time, end_time))
         }
     }
