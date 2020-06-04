@@ -1,6 +1,6 @@
 [package]
 name = "swyt"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Clément Sibille <clement.sibille@protonmail.com>"]
 edition = "2018"
 
