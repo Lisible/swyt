@@ -12,7 +12,7 @@ edition = "2018"
 [dependencies]
 dirs = "2.0.2"
 chrono = "0.4.11"
-heim = { version="*", features = ["process", "runtime-polyfill"]}
+heim = { version="0.0.10", features = ["process", "runtime-polyfill"]}
 futures = "0.3.5"
 log = "0.4.8"
 env_logger = "0.7.1"
