@@ -2,8 +2,9 @@
 name = "swyt"
 description = "Daemon killing processes based on time period rules"
 license = "MIT"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Clément Sibille <clement.sibille@protonmail.com>"]
+repository = "https://github.com/Lisible/swyt/"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,6 +12,7 @@ edition = "2018"
 [dependencies]
 dirs = "2.0.2"
 chrono = "0.4.11"
-psutil = "3.1.0"
+heim = { version="*", features = ["process", "runtime-polyfill"]}
+futures = "0.3.5"
 log = "0.4.8"
 env_logger = "0.7.1"

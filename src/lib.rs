@@ -1,5 +1,5 @@
-use crate::SwytError::RuleParseError;
 use chrono::prelude::*;
+use futures::{StreamExt};
 use log::trace;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -50,6 +50,7 @@ pub enum SwytError {
     ConfigParseError,
     RuleParseError,
     ProcessFetchError,
+    ProcessKillError,
     IoError(std::io::Error),
 }
 
@@ -62,11 +63,10 @@ impl From<std::io::Error> for SwytError {
 pub fn process_rules(rules: &Rules) -> Result<(), SwytError> {
     trace!("Process rules...");
     let current_date_time = Local::now();
-    let processes = psutil::process::processes().map_err(|_| SwytError::ProcessFetchError)?;
-
-    for process_results in processes.iter() {
-        if let Ok(process) = process_results {
-            let process_name = process.name().map_err(|_| SwytError::ProcessFetchError)?;
+    let mut processes = heim::process::processes();
+    while let Ok(process_result) = futures::executor::block_on(processes.next()).ok_or(SwytError::ProcessFetchError) {
+        if let Ok(process) = process_result {
+            let process_name = futures::executor::block_on(process.name()).map_err(|_| SwytError::ProcessFetchError)?;
             if let Some(periods) = rules.get(&process_name) {
                 if !periods.iter().any(|p| {
                     p.days_of_week.contains(&current_date_time.date().weekday())
@@ -74,7 +74,7 @@ pub fn process_rules(rules: &Rules) -> Result<(), SwytError> {
                         && current_date_time.time() <= p.end_time
                 }) {
                     trace!("Killed process {}", process_name);
-                    let _ = process.kill();
+                    let _ = futures::executor::block_on(process.kill()).map_err(|_| SwytError::ProcessKillError);
                 }
             }
         }
@@ -144,8 +144,8 @@ fn parse_rule(rule: &str) -> Result<Rule, SwytError> {
 
 fn parse_period(period: &str) -> Result<Period, SwytError> {
     let mut split_period = period.split(";");
-    let period_time = split_period.next().ok_or(RuleParseError)?;
-    let period_days_of_week = split_period.next().ok_or(RuleParseError)?;
+    let period_time = split_period.next().ok_or(SwytError::RuleParseError)?;
+    let period_days_of_week = split_period.next().ok_or(SwytError::RuleParseError)?;
 
     let (begin_time, end_time) = parse_period_time(period_time)?;
     let days_of_week = parse_days_of_week(period_days_of_week)?;

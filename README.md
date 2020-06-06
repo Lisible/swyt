@@ -4,15 +4,18 @@ Swyt is a daemon that will kill processes based on time period rules.
 
 ## Configuration 
 
-*.config/swyt/config.jbb*
+Unix-like filepath: *.config/swyt/config.jbb*
+
+Windows filepath: *AppData/Roaming/swyt/config.jbb*
 
 This files contains the settings of the daemon
 ```
 check_interval=60 # The number of seconds the daemon will sleep before checking the process list
 ```
 \
-\
-*.config/swyt/rules.jbb*
+Unix-like filepath: *.config/swyt/rules.jbb*
+
+Windows filepath: *AppData/Roaming/swyt/rules.jbb*
 
 This file contains the rules, the rules describe the time where the process is allowed to run and wont be killed.
 
