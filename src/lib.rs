@@ -1,6 +1,6 @@
 use chrono::prelude::*;
-use futures::{StreamExt};
-use log::trace;
+use futures::StreamExt;
+use log::{info, trace};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
@@ -64,9 +64,12 @@ pub fn process_rules(rules: &Rules) -> Result<(), SwytError> {
     trace!("Process rules...");
     let current_date_time = Local::now();
     let mut processes = heim::process::processes();
-    while let Ok(process_result) = futures::executor::block_on(processes.next()).ok_or(SwytError::ProcessFetchError) {
+    while let Ok(process_result) =
+        futures::executor::block_on(processes.next()).ok_or(SwytError::ProcessFetchError)
+    {
         if let Ok(process) = process_result {
-            let process_name = futures::executor::block_on(process.name()).map_err(|_| SwytError::ProcessFetchError)?;
+            let process_name = futures::executor::block_on(process.name())
+                .map_err(|_| SwytError::ProcessFetchError)?;
             if let Some(periods) = rules.get(&process_name) {
                 if !periods.iter().any(|p| {
                     p.days_of_week.contains(&current_date_time.date().weekday())
@@ -74,7 +77,8 @@ pub fn process_rules(rules: &Rules) -> Result<(), SwytError> {
                         && current_date_time.time() <= p.end_time
                 }) {
                     trace!("Killed process {}", process_name);
-                    let _ = futures::executor::block_on(process.kill()).map_err(|_| SwytError::ProcessKillError);
+                    let _ = futures::executor::block_on(process.kill())
+                        .map_err(|_| SwytError::ProcessKillError);
                 }
             }
         }
@@ -83,37 +87,48 @@ pub fn process_rules(rules: &Rules) -> Result<(), SwytError> {
     Ok(())
 }
 
-pub fn load_rules() -> Result<Rules, SwytError> {
-    let rules_filepath = find_rules_filepath()?;
+pub fn load_rules(swyt_filepath: &PathBuf) -> Result<Rules, SwytError> {
+    let rules_filepath = get_rules_filepath(swyt_filepath)?;
     parse_rules_file(rules_filepath)
 }
 
-pub fn load_config() -> Result<Configuration, SwytError> {
-    let config_filepath = find_config_filepath()?;
+pub fn load_config(swyt_filepath: &PathBuf) -> Result<Configuration, SwytError> {
+    let config_filepath = get_config_filepath(swyt_filepath)?;
     parse_config_file(config_filepath)
 }
 
-fn find_config_filepath() -> Result<PathBuf, SwytError> {
-    let mut config_directory = find_swyt_filepath()?;
+fn get_config_filepath(swyt_filepath: &PathBuf) -> Result<PathBuf, SwytError> {
+    let mut config_directory = swyt_filepath.clone();
     config_directory.push(CONFIG_FILE_NAME);
     Ok(config_directory)
 }
 
-fn find_rules_filepath() -> Result<PathBuf, SwytError> {
-    let mut rules_filepath = find_swyt_filepath()?;
+fn get_rules_filepath(swyt_filepath: &PathBuf) -> Result<PathBuf, SwytError> {
+    let mut rules_filepath = swyt_filepath.clone();
     rules_filepath.push(RULES_FILE_NAME);
     Ok(rules_filepath)
 }
 
-fn find_swyt_filepath() -> Result<PathBuf, SwytError> {
+pub fn find_swyt_filepath() -> Result<PathBuf, SwytError> {
     let mut config_directory = dirs::config_dir().ok_or(SwytError::ConfigFileNotFound)?;
     config_directory.push(SWYT_DIRECTORY_NAME);
     Ok(config_directory)
 }
 
 fn parse_rules_file(rules_filepath: PathBuf) -> Result<Rules, SwytError> {
+    if !rules_filepath.exists() {
+        info!(
+            "Rules file doesn't exist, creating: {}",
+            &rules_filepath
+                .to_str()
+                .expect("Couldn't convert rules filepath to str")
+        );
+        File::create(&rules_filepath)?;
+        return Ok(Rules::new());
+    }
+
     let mut rules = Rules::new();
-    let rules_file = File::open(rules_filepath)?;
+    let rules_file = File::open(&rules_filepath)?;
     let reader = BufReader::new(rules_file);
     for line in reader.lines() {
         let rule = parse_rule(&line?)?;
@@ -203,8 +218,19 @@ fn parse_day_of_week(day_of_week: &str) -> Result<Weekday, SwytError> {
 }
 
 fn parse_config_file(config_filepath: PathBuf) -> Result<Configuration, SwytError> {
+    if !config_filepath.exists() {
+        info!(
+            "Configuration file doesn't exist, creating: {}",
+            &config_filepath
+                .to_str()
+                .expect("Couldn't convert swyt config filepath to str")
+        );
+        File::create(&config_filepath)?;
+        return Ok(Configuration::default());
+    }
+
     let mut config = Configuration::default();
-    let config_file = File::open(config_filepath)?;
+    let config_file = File::open(&config_filepath)?;
     let reader = BufReader::new(config_file);
     for line in reader.lines() {
         parse_config_line(line?, &mut config)?;
