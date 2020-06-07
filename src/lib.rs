@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use futures::StreamExt;
 use log::{info, trace};
 use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 use std::path::PathBuf;
@@ -52,6 +53,19 @@ pub enum SwytError {
     ProcessFetchError,
     ProcessKillError,
     IoError(std::io::Error),
+}
+
+impl Display for SwytError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            SwytError::ConfigFileNotFound => write!(f, "Couldn't find config file"),
+            SwytError::ConfigParseError => write!(f, "Couldn't parse config file"),
+            SwytError::RuleParseError => write!(f, "Couldn't parse rule"),
+            SwytError::ProcessFetchError => write!(f, "Couldn't fetch process"),
+            SwytError::ProcessKillError => write!(f, "Couldn't kill process"),
+            SwytError::IoError(ref err) => std::fmt::Display::fmt(err, f),
+        }
+    }
 }
 
 impl From<std::io::Error> for SwytError {
