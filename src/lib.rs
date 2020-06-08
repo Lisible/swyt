@@ -21,7 +21,7 @@ pub struct Rule {
     allowed_periods: Vec<Period>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Period {
     days_of_week: HashSet<Weekday>,
     begin_time: NaiveTime,
@@ -280,4 +280,91 @@ fn parse_config_line(line: String, config: &mut Configuration) -> Result<(), Swy
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_CONFIG_SWYT_PATH: &'static str = "./test_data/valid_config";
+    const MISSING_VALUE_CONFIG_SWYT_PATH: &'static str = "./test_data/missing_value_config";
+    const INVALID_CONFIG_SWYT_PATH: &'static str = "./test_data/invalid_config";
+    const VALID_RULES_SWYT_PATH: &'static str = "./test_data/valid_rules";
+    const NO_RULE_SWYT_PATH: &'static str = "./test_data/no_rule";
+    const INVALID_RULES_SWYT_PATH: &'static str = "./test_data/invalid_rules";
+
+    #[test]
+    pub fn load_config_valid() {
+        let config = load_config(&VALID_CONFIG_SWYT_PATH.into()).unwrap();
+        assert_eq!(config.check_interval(), 120);
+    }
+
+    #[test]
+    pub fn load_config_missing_value() {
+        let config = load_config(&MISSING_VALUE_CONFIG_SWYT_PATH.into()).unwrap();
+        assert_eq!(config.check_interval(), 60);
+    }
+
+    #[test]
+    pub fn load_config_bad_value() {
+        let config = load_config(&INVALID_CONFIG_SWYT_PATH.into()).unwrap();
+        assert_eq!(config.check_interval(), 60);
+    }
+
+    #[test]
+    pub fn load_rules_valid() {
+        let rules = load_rules(&VALID_RULES_SWYT_PATH.into()).unwrap();
+
+        assert_eq!(rules.len(), 3);
+
+        let process0_rules = rules.get("process0").unwrap();
+        let process0_rule0 = process0_rules.get(0).unwrap();
+        assert_eq!(process0_rule0.begin_time, NaiveTime::from_hms(18, 00, 00));
+        assert_eq!(process0_rule0.end_time, NaiveTime::from_hms(20, 00, 00));
+        assert!(process0_rule0.days_of_week.contains(&Weekday::Mon));
+        assert!(process0_rule0.days_of_week.contains(&Weekday::Tue));
+        assert!(process0_rule0.days_of_week.contains(&Weekday::Wed));
+
+        let process0_rule1 = process0_rules.get(1).unwrap();
+        assert_eq!(process0_rule1.begin_time, NaiveTime::from_hms(12, 00, 00));
+        assert_eq!(process0_rule1.end_time, NaiveTime::from_hms(14, 00, 00));
+        assert!(process0_rule1.days_of_week.contains(&Weekday::Thu));
+        assert!(process0_rule1.days_of_week.contains(&Weekday::Fri));
+
+        let process0_rule2 = process0_rules.get(2).unwrap();
+        assert_eq!(process0_rule2.begin_time, NaiveTime::from_hms(00, 00, 00));
+        assert_eq!(process0_rule2.end_time, NaiveTime::from_hms(23, 59, 59));
+        assert!(process0_rule2.days_of_week.contains(&Weekday::Sat));
+        assert!(process0_rule2.days_of_week.contains(&Weekday::Sun));
+
+        let process1_rules = rules.get("process1").unwrap();
+        let process1_rule0 = process1_rules.get(0).unwrap();
+        assert_eq!(process1_rule0.begin_time, NaiveTime::from_hms(10, 00, 00));
+        assert_eq!(process1_rule0.end_time, NaiveTime::from_hms(11, 00, 00));
+        assert!(process1_rule0.days_of_week.contains(&Weekday::Mon));
+        assert!(process1_rule0.days_of_week.contains(&Weekday::Tue));
+        assert!(process1_rule0.days_of_week.contains(&Weekday::Wed));
+
+        let process2_rules = rules.get("process2").unwrap();
+        let process2_rule0 = process2_rules.get(0).unwrap();
+        assert_eq!(process2_rule0.begin_time, NaiveTime::from_hms(12, 00, 00));
+        assert_eq!(process2_rule0.end_time, NaiveTime::from_hms(15, 00, 00));
+        assert!(process2_rule0.days_of_week.contains(&Weekday::Mon));
+        assert!(process2_rule0.days_of_week.contains(&Weekday::Thu));
+        assert!(process2_rule0.days_of_week.contains(&Weekday::Fri));
+    }
+
+    #[test]
+    fn load_invalid_rules() {
+        match load_rules(&INVALID_RULES_SWYT_PATH.into()) {
+            Err(SwytError::RuleParseError) => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn load_no_rule() {
+        let rules = load_rules(&NO_RULE_SWYT_PATH.into()).unwrap();
+        assert_eq!(rules.len(), 0);
+    }
 }
