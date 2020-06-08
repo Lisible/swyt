@@ -21,6 +21,7 @@ pub struct Rule {
     allowed_periods: Vec<Period>,
 }
 
+#[derive(Clone)]
 pub struct Period {
     days_of_week: HashSet<Weekday>,
     begin_time: NaiveTime,
@@ -162,28 +163,40 @@ fn parse_rule(rule: &str) -> Result<Rule, SwytError> {
 
     let allowed_periods: Vec<Period> = periods_string
         .split("|")
-        .map(parse_period)
-        .collect::<Result<_, SwytError>>()?;
-
+        .map(parse_periods)
+        .collect::<Result<Vec<Vec<Period>>, SwytError>>()?
+        .iter()
+        .flatten()
+        .map(|p| p.clone())
+        .collect();
     Ok(Rule {
         process_name,
         allowed_periods,
     })
 }
 
-fn parse_period(period: &str) -> Result<Period, SwytError> {
+fn parse_periods(period: &str) -> Result<Vec<Period>, SwytError> {
     let mut split_period = period.split(";");
     let period_time = split_period.next().ok_or(SwytError::RuleParseError)?;
     let period_days_of_week = split_period.next().ok_or(SwytError::RuleParseError)?;
-
-    let (begin_time, end_time) = parse_period_time(period_time)?;
+    let start_ends = parse_period_times(period_time)?;
     let days_of_week = parse_days_of_week(period_days_of_week)?;
 
-    Ok(Period {
-        days_of_week,
-        begin_time,
-        end_time,
-    })
+    Ok(start_ends
+        .iter()
+        .map(|&(begin_time, end_time)| Period {
+            days_of_week: days_of_week.clone(),
+            begin_time,
+            end_time,
+        })
+        .collect())
+}
+
+fn parse_period_times(period_times: &str) -> Result<Vec<(NaiveTime, NaiveTime)>, SwytError> {
+    Ok(period_times
+        .split(",")
+        .map(parse_period_time)
+        .collect::<Result<_, SwytError>>()?)
 }
 
 fn parse_period_time(period_time: &str) -> Result<(NaiveTime, NaiveTime), SwytError> {

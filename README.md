@@ -25,7 +25,7 @@ Rules are written using the following format:
 
 A period is described as such:
 
-``begin_time~end_time:day_of_week1,day_of_week2,...``
+``begin_time1~end_time1,begin_time2~end_time2:day_of_week1,day_of_week2,...``
 
 Example: ``17:00~20:00;MO,TU,WE``
 
@@ -36,9 +36,8 @@ Example: ``*;SA,SU``
 \
 Here is a full example of what the rules.jbb file might look like
 ```
-my_chat_app=18:00~19:00;MO,TU,WE,TH,FR|12:00~14:00;MO,TU,WE,TH,FR|*;SA,SU
-work_related_app=18:00~19:00;MO,TU,WE,TH,FR|12:00~14:00;MO,TU,WE,TH,FR|*;SA,SU
-some_process=18:00~19:00;MO,TU,WE,TH,FR|12:00~14:00;MO,TU,WE,TH,FR|*;SA,SU
+my_chat_app=12:00~14:00,18:00~22:00;MO,TU,WE,TH,FR|*;SA,SU
+work_related_app=8:00~18:00;MO,TU,WE,TH,FR|8:00~12:00;SA,SU
 ```
 
 
