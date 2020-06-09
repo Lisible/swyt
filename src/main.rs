@@ -4,7 +4,7 @@ use swyt::{find_swyt_filepath, load_config, load_rules, process_rules, SwytError
 
 macro_rules! fatal {
     ($($tt:tt)*) => {{
-        error!($($tt)*);
+        error!("{}", $($tt)*);
         ::std::process::exit(1)
     }}
 }
@@ -13,10 +13,7 @@ fn main() -> Result<(), SwytError> {
     env_logger::init();
 
     info!("Swyt is starting...");
-    let swyt_filepath = match find_swyt_filepath() {
-        Ok(filepath) => filepath,
-        Err(err) => fatal!("{}", err),
-    };
+    let swyt_filepath = find_swyt_filepath().unwrap_or_else(|e| fatal!(e));
 
     if !swyt_filepath.exists() {
         info!(
@@ -27,23 +24,17 @@ fn main() -> Result<(), SwytError> {
         );
 
         if let Err(err) = std::fs::create_dir(&swyt_filepath) {
-            fatal!("{}", err);
+            fatal!(err);
         }
     }
-    let configuration = match load_config(&swyt_filepath) {
-        Ok(config) => config,
-        Err(err) => fatal!("{}", err),
-    };
-
-    let rules = match load_rules(&swyt_filepath) {
-        Ok(rules) => rules,
-        Err(err) => fatal!("{}", err),
-    };
+    let configuration = load_config(&swyt_filepath).unwrap_or_else(|e| fatal!(e));
+    let rules = load_rules(&swyt_filepath).unwrap_or_else(|e| fatal!(e));
 
     loop {
         if let Err(err) = process_rules(&rules) {
-            fatal!("{}", err);
+            fatal!(err);
         }
+
         std::thread::sleep(Duration::from_secs(configuration.check_interval() as u64))
     }
 }
